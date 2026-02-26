@@ -29,10 +29,6 @@ return {
 
     LrLibraryMenuItems = {
         {
-            title = "Sync MotoGP XMP to Plugin Fields",
-            file = "SyncAnalysisJson.lua",
-        },
-        {
             title = "Analyze MotoGP Photos",
             file = "AnalyzeMotoGPPhotoWithServer.lua",
         },
