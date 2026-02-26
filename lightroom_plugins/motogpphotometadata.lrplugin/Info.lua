@@ -1,0 +1,43 @@
+--[[----------------------------------------------------------------------------
+
+Info.lua
+MyMetadata.lrplugin
+
+--------------------------------------------------------------------------------
+
+ADOBE SYSTEMS INCORPORATED
+ Copyright 2008 Adobe Systems Incorporated
+ All Rights Reserved.
+
+NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
+with the terms of the Adobe license agreement accompanying it. If you have received
+this file from a source other than Adobe, then your use, modification, or distribution
+of it requires the prior written permission of Adobe.
+
+------------------------------------------------------------------------------]]
+
+return {
+
+	LrSdkVersion = 3.0,
+
+	LrToolkitIdentifier = 'yutakas.plugin.motogpphotometadata',
+	LrPluginName = "MotoGP Photo Metadata",
+	
+	LrMetadataProvider = 'MotoGPPhotoMetadataDefinition.lua',
+
+	LrMetadataTagsetFactory = 'MotoGPPhotoMetadataTagset.lua',
+
+    LrLibraryMenuItems = {
+        {
+            title = "Sync MotoGP XMP to Plugin Fields",
+            file = "SyncAnalysisJson.lua",
+        },
+        {
+            title = "Analyze MotoGP Photos",
+            file = "AnalyzeMotoGPPhotoWithServer.lua",
+        },
+    },
+
+	VERSION = { major=14, minor=5, revision=0, build="202504141032-10373aad", },
+
+}

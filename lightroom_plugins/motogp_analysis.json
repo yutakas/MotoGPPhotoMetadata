@@ -1,0 +1,20 @@
+{
+  "photos": [
+    {
+      "filename": "_DSC7746.NEF",
+      "metadata": {
+        "laplacianvariance": "60",
+        "inframed": "true"
+      }
+    },
+    {
+      "filename": "_DSC7747.NEF",
+      "metadata": {
+        "laplacianvariance": "85",
+        "inframed": "false",
+        "motorcyclesize": "85",
+        "centered": "false"
+      }
+    }
+  ]
+}
