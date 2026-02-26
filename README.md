@@ -8,7 +8,7 @@ Analyzes MotoGP photos using YOLO object detection and writes metadata (sharpnes
 
 - Lightroom Classic
 - Conda
-- YOLO model file: `notebooks/yolo12x.pt`
+- YOLO model file: `models/yolo12x.pt`
 
 ---
 
