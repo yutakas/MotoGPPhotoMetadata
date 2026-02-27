@@ -32,8 +32,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             print("Post Request Received")
             return self.process_img()
 
-        if self.path == self.server_class.path.XML:
-            return self.store_xml_test_data()
+        # if self.path == self.server_class.path.XML:
+        #     return self.store_xml_test_data()
 
         response = {"message": "Hello world"}
         self.send_response(200)
