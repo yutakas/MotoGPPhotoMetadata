@@ -38,7 +38,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         response = {"message": "Hello world"}
         self.send_response(200)
         self.send_header("Content-type", "application/json")
-        self.send_header("Content-Length", str(len(dumps(response))))
+        self.send_header("Content-Length", str(len(json.dumps(response))))
         self.end_headers()
         self.wfile.write(str(response).encode('utf8'))
 

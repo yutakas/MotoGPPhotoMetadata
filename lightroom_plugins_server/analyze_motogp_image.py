@@ -8,37 +8,41 @@ import gc
 
 home_path = os.environ['HOME']
 
-def compute_laplacian_variance(cv2_image, yolo_results):
-    laplacian_variance = 0.0
-    tenengrad = 0.0
+def get_largest_motorcycle_rect(yolo_results):
+    motorcycle_rects = []
     for result in yolo_results:
         xyxys = result['xyxy'].tolist()
         clses = result['cls'].tolist()
-        motorcycle_rects = []
         for c, r in zip(clses, xyxys):
-            print('clses' + '  ' + str(c) + str(r))
             if c == 3.0:
                 motorcycle_rects.append(r)
+    if not motorcycle_rects:
+        return None
+    return max(motorcycle_rects, key=lambda r: abs(r[2] - r[0]) * abs(r[3] - r[1]))
 
-        if len(motorcycle_rects) == 1:
-            rect = motorcycle_rects[0]
-            x1, y1, x2, y2 = map(int, rect)
-            x1_center = int((x1 + x2) / 2 - (x2 - x1) / 4)
-            x2_center = int((x1 + x2) / 2 + (x2 - x1) / 4)
-            y1_center = int((y1 + y2) / 2 - (y2 - y1) / 4 )
-            y2_center = int((y1 + y2) / 2 + (y2 - y1) / 4)
 
-            cropped_img = cv2_image[y1_center:y2_center, x1_center:x2_center]
+def compute_laplacian_variance(cv2_image, yolo_results):
+    laplacian_variance = 0.0
+    tenengrad = 0.0
+    rect = get_largest_motorcycle_rect(yolo_results)
+    if rect is not None:
+        x1, y1, x2, y2 = map(int, rect)
+        x1_center = int((x1 + x2) / 2 - (x2 - x1) / 4)
+        x2_center = int((x1 + x2) / 2 + (x2 - x1) / 4)
+        y1_center = int((y1 + y2) / 2 - (y2 - y1) / 4)
+        y2_center = int((y1 + y2) / 2 + (y2 - y1) / 4)
 
-            try:
-                gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
-                laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-                laplacian_variance = laplacian.var()
-                gx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-                gy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
-                tenengrad = (gx**2 + gy**2).mean()
-            except Exception as e:
-                continue
+        cropped_img = cv2_image[y1_center:y2_center, x1_center:x2_center]
+
+        try:
+            gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
+            laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+            laplacian_variance = laplacian.var()
+            gx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+            gy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+            tenengrad = (gx**2 + gy**2).mean()
+        except Exception:
+            pass
 
     torch.cuda.empty_cache()
     gc.collect()
@@ -52,47 +56,38 @@ def compute_keywords(cv2_image, yolo_results, laplacian_variance, tenengrad):
 
     shape = cv2_image.shape
 
-    motorcycle_rects = []
-    for result in yolo_results:
-        xyxys = result['xyxy'].tolist()
-        clses = result['cls'].tolist()
+    rect = get_largest_motorcycle_rect(yolo_results)
+    if rect is not None:
+        print('motorcycle_rect ' + str(rect))
 
-        for c, r in zip(clses, xyxys):
-            # print(file_path + '  ' + str(c) + str(r))
-            if c == 3.0:
-                motorcycle_rects.append(r)
+        frame_in_edge = 0.02
+        if (rect[0] > float(shape[1]) * frame_in_edge) & \
+        (shape[1] - rect[2] > float(shape[1]) * frame_in_edge) & \
+        (rect[1] > float(shape[0]) * frame_in_edge) & \
+        (shape[0] - rect[3] > float(shape[0]) * frame_in_edge):
+            keywords['inframed'] = "true"
+        else:
+            keywords['inframed'] = "false"
 
-        if len(motorcycle_rects) == 1:
-            print('motorcycle_rects ' + str(motorcycle_rects))
+        center_edge = 0.10
+        motorcycle_center_x = (rect[2] - rect[0] / 2.0) + rect[0]
+        motorcycle_center_y = (rect[3] - rect[1] / 2.0) + rect[1]
+        if (motorcycle_center_x > float(shape[1]) - float(shape[1]) * center_edge) & \
+        (motorcycle_center_x < float(shape[1]) + float(shape[1]) * center_edge) & \
+        (motorcycle_center_y > float(shape[0]) - float(shape[0]) * center_edge) & \
+        (motorcycle_center_y < float(shape[0]) + float(shape[0]) * center_edge):
+            keywords['centered'] = "true"
+        else:
+            keywords['centered'] = "false"
 
-            frame_in_edge = 0.02
-            if (motorcycle_rects[0][0] > float(shape[1]) * frame_in_edge) & \
-            (shape[1] - motorcycle_rects[0][2] > float(shape[1]) * frame_in_edge) & \
-            (motorcycle_rects[0][1] > float(shape[0]) * frame_in_edge) & \
-            (shape[0] - motorcycle_rects[0][3] > float(shape[0]) * frame_in_edge):
-                keywords['inframed'] = "true"
-            else:
-                keywords['inframed'] = "false"
+        image_size = float(shape[1]) * float(shape[0])
+        motorcycle_size = abs(rect[2] - rect[0]) * abs(rect[3] - rect[1])
+        print('image_size ' + str(image_size))
+        print('motorcycle_size ' + str(motorcycle_size))
+        keywords['motorcyclesize'] = str(int(motorcycle_size / image_size * 10.0 + 1.0) * 10)
 
-            center_edge = 0.10
-            motorcycle_center_x = (motorcycle_rects[0][2] - motorcycle_rects[0][0] / 2.0) + motorcycle_rects[0][0]
-            motorcycle_center_y = (motorcycle_rects[0][3] - motorcycle_rects[0][1] / 2.0) + motorcycle_rects[0][1]
-            if (motorcycle_center_x > float(shape[1]) - float(shape[1]) * center_edge) & \
-            (motorcycle_center_x < float(shape[1]) + float(shape[1]) * center_edge) & \
-            (motorcycle_center_y > float(shape[0]) - float(shape[0]) * center_edge) & \
-            (motorcycle_center_y < float(shape[0]) + float(shape[0]) * center_edge):
-                keywords['centered'] = "true"
-            else:
-                keywords['centered'] = "false"
-
-            image_size = float(shape[1]) * float(shape[0])
-            motorcycle_size = abs(motorcycle_rects[0][2] - motorcycle_rects[0][0]) * abs(motorcycle_rects[0][3] - motorcycle_rects[0][1])
-            print('image_size ' + str(image_size))
-            print('motorcycle_size ' + str(motorcycle_size))
-            keywords['motorcyclesize'] = str(int(motorcycle_size / image_size * 10.0 + 1.0) * 10)
-            
-            keywords['laplacianvariance'] = str(int(laplacian_variance / 10.0 + 1.0) * 10)
-            keywords['tenengrad'] = str(int(tenengrad / 10.0 + 1.0) * 10)
+        keywords['laplacianvariance'] = str(int(laplacian_variance / 10.0 + 1.0) * 10)
+        keywords['tenengrad'] = str(int(tenengrad / 10.0 + 1.0) * 10)
 
     torch.cuda.empty_cache()
     gc.collect()
