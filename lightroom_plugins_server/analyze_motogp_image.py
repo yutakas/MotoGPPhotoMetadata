@@ -125,7 +125,7 @@ def run_YOLO_model(cv2_image):
 def analyze_image_from_bytes(image_bytes):
     nparr = np.frombuffer(image_bytes, np.uint8)
     cv2_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    cv2.imwrite("output_image.jpg", cv2_image)
+    # cv2.imwrite("output_image.jpg", cv2_image)
 
     yolo_results = run_YOLO_model(cv2_image)
     laplacian_variance, tenengrad = compute_laplacian_variance(cv2_image, yolo_results)
