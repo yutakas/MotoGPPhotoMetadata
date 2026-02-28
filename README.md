@@ -60,9 +60,10 @@ The following custom metadata fields are populated per photo:
 
 | Field | Description |
 |---|---|
-| `laplacianvariance` | Sharpness score (higher = sharper) |
-| `inframed` | `true` if the motorcycle is fully within the frame |
-| `motorcyclesize` | Relative size of the motorcycle in the frame (×10 scale) |
+| `laplacianvariance` | Laplacian variance sharpness score of the motorcycle region (higher = sharper) |
+| `tenengrad` | Tenengrad sharpness score of the motorcycle region (higher = sharper) |
+| `inframed` | `true` if the motorcycle is fully within the frame edges |
+| `motorcyclesize` | Relative size of the motorcycle in the frame (rounded to nearest 10) |
 | `centered` | `true` if the motorcycle center is near the image center |
 
 ### Viewing the metadata
