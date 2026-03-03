@@ -1,4 +1,5 @@
 import os
+import json
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -8,6 +9,20 @@ import analyze_with_openai_api
 
 
 home_path = os.environ['HOME']
+
+_CACHE_FILE = os.path.join(os.path.dirname(__file__), 'openai_cache.json')
+
+def _load_cache():
+    if os.path.exists(_CACHE_FILE):
+        with open(_CACHE_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def _save_cache(cache):
+    with open(_CACHE_FILE, 'w') as f:
+        json.dump(cache, f, indent=2)
+
+_openai_cache = _load_cache()
 
 def get_largest_motorcycle_rect(yolo_results):
     motorcycle_rects = []
@@ -45,7 +60,7 @@ def compute_laplacian_variance(cv2_image, rect):
 def analyze_with_llm(motorcycle_img):
     return analyze_with_openai_api.get_openai_analysis(motorcycle_img)
 
-def compute_keywords(cv2_image, yolo_results):
+def compute_keywords(cv2_image, yolo_results, image_path=''):
     keywords = {}
 
     shape = cv2_image.shape
@@ -87,9 +102,18 @@ def compute_keywords(cv2_image, yolo_results):
         keywords['laplacianvariance'] = str(int(laplacian_variance / 10.0 + 1.0) * 10)
         keywords['tenengrad'] = str(int(tenengrad / 10.0 + 1.0) * 10)
 
-        # openai_analysis = analyze_with_llm(motorcycle_img)
-        # if openai_analysis is not None:
-        #     keywords.update(openai_analysis)
+        if image_path and image_path in _openai_cache:
+            openai_analysis = _openai_cache[image_path]
+        else:
+            openai_analysis = analyze_with_llm(motorcycle_img)
+            if image_path and openai_analysis is not None:
+                _openai_cache[image_path] = openai_analysis
+                _save_cache(_openai_cache)
+        if openai_analysis is not None:
+            keywords['motogp_team'] = openai_analysis.get('motogp_team', '')
+            keywords['bike_color'] = openai_analysis.get('bike_color', '')
+            # keywords['sponsor_names'] = openai_analysis.get('sponsor_names', '')
+            # keywords['logos'] = openai_analysis.get('logos', '')
 
     torch.cuda.empty_cache()
     gc.collect()
@@ -125,13 +149,14 @@ def run_YOLO_model(cv2_image):
 
     return yolo_results
 
-def analyze_image_from_bytes(image_bytes):
+def analyze_image_from_bytes(image_bytes, image_path=''):
     nparr = np.frombuffer(image_bytes, np.uint8)
     cv2_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     # cv2.imwrite("output_image.jpg", cv2_image)
 
+    print(f"Analyzing image: {image_path}")
     yolo_results = run_YOLO_model(cv2_image)
-    
-    keywords = compute_keywords(cv2_image, yolo_results)
+
+    keywords = compute_keywords(cv2_image, yolo_results, image_path)
 
     return keywords

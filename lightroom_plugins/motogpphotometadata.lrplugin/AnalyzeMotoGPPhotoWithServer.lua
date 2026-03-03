@@ -85,9 +85,11 @@ local function applyMotoGPAnalysisJson()
                 logger:trace('requestJpegThumbnail pixels ok pixel size %s', string.len( thumbnailPixels ))
 
                 local url = 'http://localhost:8500/processimg'
+                local imagePath = photo:getRawMetadata("path") or ""
                 local headers = {
                     { field = 'Content-Type', value = "image/jpeg" },
                     { field = 'Content-Length', value = string.len( thumbnailPixels ) },
+                    { field = 'X-Image-Path', value = imagePath },
                 }
                 local totalSize = string.len( thumbnailPixels )
                 local response, _ = LrHttp.post(url, function() return thumbnailPixels end, headers, "POST", 60, totalSize)

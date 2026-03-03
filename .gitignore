@@ -3,3 +3,4 @@ models/
 output_image.jpg
 priv_test/
 .env
+lightroom_plugins_server/openai_cache.json

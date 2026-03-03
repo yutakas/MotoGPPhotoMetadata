@@ -45,7 +45,8 @@ class RequestHandler(BaseHTTPRequestHandler):
     def process_img(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        result = analyze_motogp_image.analyze_image_from_bytes(post_data)
+        image_path = self.headers.get('X-Image-Path', '')
+        result = analyze_motogp_image.analyze_image_from_bytes(post_data, image_path)
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.send_header("Content-Length", str(len(json.dumps(result))))
