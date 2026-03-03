@@ -114,6 +114,12 @@ local function applyMotoGPAnalysisJson()
                                 photo:setPropertyForPlugin(_PLUGIN, 'motorcyclesize', photoMetadata.motorcyclesize)
                                 photo:setPropertyForPlugin(_PLUGIN, 'centered', photoMetadata.centered)
                             end
+                            if photoMetadata.motogp_team then
+                                photo:setPropertyForPlugin(_PLUGIN, 'motogp_team', photoMetadata.motogp_team)
+                            end
+                            if photoMetadata.bike_color then
+                                photo:setPropertyForPlugin(_PLUGIN, 'bike_color', photoMetadata.bike_color)
+                            end
                             processed_count = processed_count + 1
                             logger:trace('catalog:withWriteAccessDo ended')
                         end)

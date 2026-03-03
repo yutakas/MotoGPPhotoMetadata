@@ -4,6 +4,7 @@ import numpy as np
 from ultralytics import YOLO
 import torch
 import gc
+import analyze_with_openai_api
 
 
 home_path = os.environ['HOME']
@@ -21,44 +22,40 @@ def get_largest_motorcycle_rect(yolo_results):
     return max(motorcycle_rects, key=lambda r: abs(r[2] - r[0]) * abs(r[3] - r[1]))
 
 
-def compute_laplacian_variance(cv2_image, yolo_results):
+def compute_laplacian_variance(cv2_image, rect):
     laplacian_variance = 0.0
     tenengrad = 0.0
-    rect = get_largest_motorcycle_rect(yolo_results)
-    if rect is not None:
-        x1, y1, x2, y2 = map(int, rect)
-        x1_center = int((x1 + x2) / 2 - (x2 - x1) / 4)
-        x2_center = int((x1 + x2) / 2 + (x2 - x1) / 4)
-        y1_center = int((y1 + y2) / 2 - (y2 - y1) / 4)
-        y2_center = int((y1 + y2) / 2 + (y2 - y1) / 4)
-
-        cropped_img = cv2_image[y1_center:y2_center, x1_center:x2_center]
-
-        try:
-            gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
-            laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-            laplacian_variance = laplacian.var()
-            gx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-            gy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
-            tenengrad = (gx**2 + gy**2).mean()
-        except Exception:
-            pass
-
-    torch.cuda.empty_cache()
-    gc.collect()
-
+    x1, y1, x2, y2 = map(int, rect)
+    x1_center = int((x1 + x2) / 2 - (x2 - x1) / 4)
+    x2_center = int((x1 + x2) / 2 + (x2 - x1) / 4)
+    y1_center = int((y1 + y2) / 2 - (y2 - y1) / 4)
+    y2_center = int((y1 + y2) / 2 + (y2 - y1) / 4)
+    cropped_img = cv2_image[y1_center:y2_center, x1_center:x2_center]
+    try:
+        gray = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
+        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+        laplacian_variance = laplacian.var()
+        gx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+        gy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+        tenengrad = (gx**2 + gy**2).mean()
+    except Exception:
+        pass
     return laplacian_variance, tenengrad
 
+def analyze_with_llm(motorcycle_img):
+    return analyze_with_openai_api.get_openai_analysis(motorcycle_img)
 
-def compute_keywords(cv2_image, yolo_results, laplacian_variance, tenengrad):
+def compute_keywords(cv2_image, yolo_results):
     keywords = {}
-
 
     shape = cv2_image.shape
 
     rect = get_largest_motorcycle_rect(yolo_results)
     if rect is not None:
         print('motorcycle_rect ' + str(rect))
+        x1, y1, x2, y2 = map(int, rect)
+        motorcycle_img = cv2_image[y1:y2, x1:x2]
+        cv2.imwrite("output_image.jpg", motorcycle_img)
 
         frame_in_edge = 0.02
         if (rect[0] > float(shape[1]) * frame_in_edge) & \
@@ -86,13 +83,19 @@ def compute_keywords(cv2_image, yolo_results, laplacian_variance, tenengrad):
         print('motorcycle_size ' + str(motorcycle_size))
         keywords['motorcyclesize'] = str(int(motorcycle_size / image_size * 10.0 + 1.0) * 10)
 
+        laplacian_variance, tenengrad = compute_laplacian_variance(cv2_image, rect)
         keywords['laplacianvariance'] = str(int(laplacian_variance / 10.0 + 1.0) * 10)
         keywords['tenengrad'] = str(int(tenengrad / 10.0 + 1.0) * 10)
+
+        # openai_analysis = analyze_with_llm(motorcycle_img)
+        # if openai_analysis is not None:
+        #     keywords.update(openai_analysis)
 
     torch.cuda.empty_cache()
     gc.collect()
 
     return keywords
+
 
 def run_YOLO_model(cv2_image):
     model = YOLO( os.path.join(home_path, 'src/github/MotoGPPhotoMetadata/models/yolo12x.pt'))
@@ -128,8 +131,7 @@ def analyze_image_from_bytes(image_bytes):
     # cv2.imwrite("output_image.jpg", cv2_image)
 
     yolo_results = run_YOLO_model(cv2_image)
-    laplacian_variance, tenengrad = compute_laplacian_variance(cv2_image, yolo_results)
-    keywords = compute_keywords(cv2_image, yolo_results, laplacian_variance, tenengrad)
-
+    
+    keywords = compute_keywords(cv2_image, yolo_results)
 
     return keywords

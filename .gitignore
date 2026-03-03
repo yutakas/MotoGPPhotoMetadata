@@ -1,3 +1,5 @@
 # Model files (too large for GitHub)
 models/
 output_image.jpg
+priv_test/
+.env
