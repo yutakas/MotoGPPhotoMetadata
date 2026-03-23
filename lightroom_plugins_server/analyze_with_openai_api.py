@@ -1,11 +1,15 @@
 import openai
 import base64
 import json
+import logging
+import time
 import cv2
 import re
 
 from dotenv import load_dotenv
 import os
+
+logger = logging.getLogger('motogp_server.openai')
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -101,7 +105,7 @@ def get_openai_analysis(cv2_image, openai_api_key='', openai_model='', image_pat
     effective_model = openai_model if openai_model else "gpt-5-mini"
 
     if not effective_key:
-        print("No OpenAI API key configured. Skipping OpenAI analysis.")
+        logger.warning("No OpenAI API key configured. Skipping OpenAI analysis.")
         return None
 
     # Try to determine photo year from path or EXIF
@@ -121,6 +125,8 @@ def get_openai_analysis(cv2_image, openai_api_key='', openai_model='', image_pat
 
     client = openai.OpenAI(api_key=effective_key)
 
+    logger.info("Calling OpenAI API (model=%s, year=%s) ...", effective_model, year)
+    start_time = time.time()
     try:
         response = client.responses.create(
             model=effective_model,
@@ -142,8 +148,11 @@ def get_openai_analysis(cv2_image, openai_api_key='', openai_model='', image_pat
                 }
             ],
         )
+        elapsed = time.time() - start_time
+        logger.info("OpenAI API responded in %.2f seconds", elapsed)
     except openai.OpenAIError as e:
-        print(f"OpenAI API error: {e}")
+        elapsed = time.time() - start_time
+        logger.error("OpenAI API error after %.2f seconds: %s", elapsed, e)
         return None
 
     # Extract text content from the response output items
@@ -158,7 +167,7 @@ def get_openai_analysis(cv2_image, openai_api_key='', openai_model='', image_pat
                 break
 
     if not content:
-        print("No text content in OpenAI response")
+        logger.error("No text content in OpenAI response")
         return None
 
     # Strip markdown fences if present (JSON mode unavailable with web search)
@@ -168,7 +177,7 @@ def get_openai_analysis(cv2_image, openai_api_key='', openai_model='', image_pat
     try:
         result = json.loads(content)
     except json.JSONDecodeError as e:
-        print(f"Failed to parse OpenAI response as JSON: {e}\nContent: {content}")
+        logger.error("Failed to parse OpenAI response as JSON: %s\nContent: %s", e, content)
         return None
 
     # Normalize to consistent format

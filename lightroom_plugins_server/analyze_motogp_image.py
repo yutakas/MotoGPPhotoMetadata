@@ -1,11 +1,14 @@
 import os
 import json
+import logging
 import cv2
 import numpy as np
 from ultralytics import YOLO
 import torch
 import gc
 import analyze_with_openai_api
+
+logger = logging.getLogger('motogp_server.analyze')
 
 
 home_path = os.environ['HOME']
@@ -67,7 +70,7 @@ def compute_keywords(cv2_image, yolo_results, image_path='', openai_api_key='', 
 
     rect = get_largest_motorcycle_rect(yolo_results)
     if rect is not None:
-        print('motorcycle_rect ' + str(rect))
+        logger.info('motorcycle_rect %s', rect)
         x1, y1, x2, y2 = map(int, rect)
         motorcycle_img = cv2_image[y1:y2, x1:x2]
         cv2.imwrite("output_image.jpg", motorcycle_img)
@@ -94,8 +97,8 @@ def compute_keywords(cv2_image, yolo_results, image_path='', openai_api_key='', 
 
         image_size = float(shape[1]) * float(shape[0])
         motorcycle_size = abs(rect[2] - rect[0]) * abs(rect[3] - rect[1])
-        print('image_size ' + str(image_size))
-        print('motorcycle_size ' + str(motorcycle_size))
+        logger.info('image_size %s', image_size)
+        logger.info('motorcycle_size %s', motorcycle_size)
         keywords['motorcyclesize'] = str(int(motorcycle_size / image_size * 10.0 + 1.0) * 10)
 
         laplacian_variance, tenengrad = compute_laplacian_variance(cv2_image, rect)
@@ -154,7 +157,7 @@ def analyze_image_from_bytes(image_bytes, image_path='', openai_api_key='', open
     cv2_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     # cv2.imwrite("output_image.jpg", cv2_image)
 
-    print(f"Analyzing image: {image_path} (force_update={force_update})")
+    logger.info("Analyzing image: %s (force_update=%s)", image_path, force_update)
     yolo_results = run_YOLO_model(cv2_image)
 
     keywords = compute_keywords(cv2_image, yolo_results, image_path, openai_api_key=openai_api_key, openai_model=openai_model, image_bytes=image_bytes, force_update=force_update)

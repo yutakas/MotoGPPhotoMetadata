@@ -1,7 +1,15 @@
 import argparse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import logging
 import analyze_motogp_image
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+logger = logging.getLogger('motogp_server')
 
 class Path:
     PORCESSIMG = "/processimg"
@@ -29,7 +37,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == self.server_class.path.PORCESSIMG:
-            print("Post Request Received")
+            logger.info("Post Request Received")
             return self.process_img()
 
         # if self.path == self.server_class.path.XML:
@@ -54,14 +62,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.send_header("Content-Length", str(len(json.dumps(result))))
         self.end_headers()
-        print("Response data: " + json.dumps(result))
+        logger.info("Response data: %s", json.dumps(result))
         self.wfile.write(json.dumps(result).encode('utf8'))
 
 def main():
     addr = "0.0.0.0"
     port = 8500
     http_server = Server((addr, port), RequestHandler)
-    print(f"Starting server on {addr}:{port}")
+    logger.info("Starting server on %s:%d", addr, port)
     http_server.serve_forever()
 
 
