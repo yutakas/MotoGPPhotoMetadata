@@ -1,4 +1,5 @@
--- Lightroom XMP File Loader Plugin Sample Code
+-- Force Update variant: bypasses the server-side OpenAI cache
+-- and re-analyzes all selected photos from scratch.
 
 local LrApplication = import 'LrApplication'
 local LrDialogs = import 'LrDialogs'
@@ -11,23 +12,20 @@ local LrPrefs = import 'LrPrefs'
 
 local _pendingThumbnailRequests = {}
 
--- this log file will be saved in /Users/yutakasuzue/Library/Logs/Adobe/Lightroom/LrClassicLogs
 local logFilename = LOC "yutakas.plugin.motogpphotometadata"
 local logger = import 'LrLogger'( logFilename )
 logger:enable( "logfile" )
 
 local function applyMotoGPAnalysisJson(forceUpdate)
-    logger:trace('applyMotoGPAnalysisJson start ----------------------------------------') 
-    -- LrDialogs.message("GO")
+    logger:trace('applyMotoGPAnalysisJson start (forceUpdate=' .. tostring(forceUpdate) .. ') ----------------------------------------')
     LrTasks.startAsyncTask(function()
-    
-        -- progress:done()
+
         local progress = LrProgressScope({
-            title = "Analyzing MotoGP Photos...",
+            title = "Analyzing MotoGP Photos (Force Update)...",
             caption = "Please wait...",
             functionContext = nil,
         })
-        
+
         local processed_count = 0
         local catalog = LrApplication.activeCatalog()
         local selectedPhotos = catalog:getTargetPhotos()
@@ -73,7 +71,6 @@ local function applyMotoGPAnalysisJson(forceUpdate)
             end
 
             logger:trace('requestJpegThumbnail  waiting for callback to complete')
-            -- Wait for callback to complete (300 * 0.1s = 30s timeout)
             local timeout = 300
             while not done and timeout > 0 do
                 LrTasks.sleep(0.1)
@@ -152,14 +149,13 @@ local function applyMotoGPAnalysisJson(forceUpdate)
         end
 
         progress:done()
-        logger:trace(string.format("Completed Processed %d photos %d succeeded", #selectedPhotos, processed_count)) 
+        logger:trace(string.format("Completed Processed %d photos %d succeeded", #selectedPhotos, processed_count))
         LrDialogs.message("Complete", string.format("Processed %d photos %d succeeded", #selectedPhotos, processed_count))
 
     end)
-    
+
 end
 
 
-applyMotoGPAnalysisJson(false)
--- Export the function for use in plugin
+applyMotoGPAnalysisJson(true)
 return nil

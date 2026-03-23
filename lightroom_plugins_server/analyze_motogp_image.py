@@ -57,10 +57,10 @@ def compute_laplacian_variance(cv2_image, rect):
         pass
     return laplacian_variance, tenengrad
 
-def analyze_with_llm(motorcycle_img):
-    return analyze_with_openai_api.get_openai_analysis(motorcycle_img)
+def analyze_with_llm(motorcycle_img, openai_api_key='', openai_model='', image_path='', image_bytes=None):
+    return analyze_with_openai_api.get_openai_analysis(motorcycle_img, openai_api_key=openai_api_key, openai_model=openai_model, image_path=image_path, image_bytes=image_bytes)
 
-def compute_keywords(cv2_image, yolo_results, image_path=''):
+def compute_keywords(cv2_image, yolo_results, image_path='', openai_api_key='', openai_model='', image_bytes=None, force_update=False):
     keywords = {}
 
     shape = cv2_image.shape
@@ -102,10 +102,10 @@ def compute_keywords(cv2_image, yolo_results, image_path=''):
         keywords['laplacianvariance'] = str(int(laplacian_variance / 10.0 + 1.0) * 10)
         keywords['tenengrad'] = str(int(tenengrad / 10.0 + 1.0) * 10)
 
-        if image_path and image_path in _openai_cache:
+        if not force_update and image_path and image_path in _openai_cache:
             openai_analysis = _openai_cache[image_path]
         else:
-            openai_analysis = analyze_with_llm(motorcycle_img)
+            openai_analysis = analyze_with_llm(motorcycle_img, openai_api_key=openai_api_key, openai_model=openai_model, image_path=image_path, image_bytes=image_bytes)
             if image_path and openai_analysis is not None:
                 _openai_cache[image_path] = openai_analysis
                 _save_cache(_openai_cache)
@@ -149,14 +149,14 @@ def run_YOLO_model(cv2_image):
 
     return yolo_results
 
-def analyze_image_from_bytes(image_bytes, image_path=''):
+def analyze_image_from_bytes(image_bytes, image_path='', openai_api_key='', openai_model='', force_update=False):
     nparr = np.frombuffer(image_bytes, np.uint8)
     cv2_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     # cv2.imwrite("output_image.jpg", cv2_image)
 
-    print(f"Analyzing image: {image_path}")
+    print(f"Analyzing image: {image_path} (force_update={force_update})")
     yolo_results = run_YOLO_model(cv2_image)
 
-    keywords = compute_keywords(cv2_image, yolo_results, image_path)
+    keywords = compute_keywords(cv2_image, yolo_results, image_path, openai_api_key=openai_api_key, openai_model=openai_model, image_bytes=image_bytes, force_update=force_update)
 
     return keywords

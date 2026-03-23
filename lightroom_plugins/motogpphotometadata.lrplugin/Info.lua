@@ -27,10 +27,16 @@ return {
 
 	LrMetadataTagsetFactory = 'MotoGPPhotoMetadataTagset.lua',
 
+	LrPluginInfoProvider = 'PluginInfoProvider.lua',
+
     LrLibraryMenuItems = {
         {
             title = "Analyze MotoGP Photos",
             file = "AnalyzeMotoGPPhotoWithServer.lua",
+        },
+        {
+            title = "Analyze MotoGP Photos (Force Update)",
+            file = "AnalyzeMotoGPPhotoWithServerForceUpdate.lua",
         },
     },
 
