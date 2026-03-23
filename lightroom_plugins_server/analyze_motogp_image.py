@@ -11,7 +11,8 @@ import analyze_with_openai_api
 logger = logging.getLogger('motogp_server.analyze')
 
 
-home_path = os.environ['HOME']
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
 
 _CACHE_FILE = os.path.join(os.path.dirname(__file__), 'openai_cache.json')
 
@@ -125,7 +126,7 @@ def compute_keywords(cv2_image, yolo_results, image_path='', openai_api_key='', 
 
 
 def run_YOLO_model(cv2_image):
-    model = YOLO( os.path.join(home_path, 'src/github/MotoGPPhotoMetadata/models/yolo12x.pt'))
+    model = YOLO(os.path.join(_PROJECT_ROOT, 'models', 'yolo12x.pt'))
 
     results = model(source=cv2_image, show=False, conf=0.8, save=False, device='mps')
     # results = model(source=file_path, show=False, conf=0.8, save=False, device='mps')

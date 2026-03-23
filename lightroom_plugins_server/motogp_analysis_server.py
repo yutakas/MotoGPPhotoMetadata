@@ -66,7 +66,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(result).encode('utf8'))
 
 def main():
-    addr = "0.0.0.0"
+    addr = "127.0.0.1"
     port = 8500
     http_server = Server((addr, port), RequestHandler)
     logger.info("Starting server on %s:%d", addr, port)
