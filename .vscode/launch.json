@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "MotoGP Analysis Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/lightroom_plugins_server/motogp_analysis_server.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/lightroom_plugins_server",
+            "env": {
+                "PYTHONDONTWRITEBYTECODE": "1"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Test OpenAI Analysis",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/lightroom_plugins_server/test_openai_analysis.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/lightroom_plugins_server",
+            "justMyCode": false
+        }
+    ]
+}

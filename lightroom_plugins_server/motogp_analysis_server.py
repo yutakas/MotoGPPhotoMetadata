@@ -1,7 +1,15 @@
 import argparse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import logging
 import analyze_motogp_image
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+logger = logging.getLogger('motogp_server')
 
 class Path:
     PORCESSIMG = "/processimg"
@@ -29,7 +37,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == self.server_class.path.PORCESSIMG:
-            print("Post Request Received")
+            logger.info("Post Request Received")
             return self.process_img()
 
         # if self.path == self.server_class.path.XML:
@@ -45,19 +53,23 @@ class RequestHandler(BaseHTTPRequestHandler):
     def process_img(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        result = analyze_motogp_image.analyze_image_from_bytes(post_data)
+        image_path = self.headers.get('X-Image-Path', '')
+        openai_api_key = self.headers.get('X-OpenAI-Api-Key', '')
+        openai_model = self.headers.get('X-OpenAI-Model', '')
+        force_update = self.headers.get('X-Force-Update', '').lower() == 'true'
+        result = analyze_motogp_image.analyze_image_from_bytes(post_data, image_path, openai_api_key=openai_api_key, openai_model=openai_model, force_update=force_update)
         self.send_response(200)
         self.send_header("Content-type", "application/json")
         self.send_header("Content-Length", str(len(json.dumps(result))))
         self.end_headers()
-        print("Response data: " + json.dumps(result))
+        logger.info("Response data: %s", json.dumps(result))
         self.wfile.write(json.dumps(result).encode('utf8'))
 
 def main():
-    addr = "0.0.0.0"
+    addr = "127.0.0.1"
     port = 8500
     http_server = Server((addr, port), RequestHandler)
-    print(f"Starting server on {addr}:{port}")
+    logger.info("Starting server on %s:%d", addr, port)
     http_server.serve_forever()
 
 

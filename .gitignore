@@ -1,3 +1,27 @@
-# Model files (too large for GitHub)
+# Model files (too large for GitHub -- download separately)
 models/
+
+# Environment and secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Runtime artifacts
 output_image.jpg
+lightroom_plugins_server/openai_cache.json
+
+# Private test files
+priv_test/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
